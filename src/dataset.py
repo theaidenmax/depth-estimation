@@ -6,15 +6,16 @@ import torchvision.transforms as T
 from pathlib import Path
 
 class NYUDepthDataset(Dataset):
-    def __init__(self, csv_file, transform_img=None, transform_depth=None):
+    def __init__(self, csv_file, geom_transform=None, img_transform=None, depth_transform=None):
         self.csv_path = Path(csv_file)
         
         self.root_dir = self.csv_path.parent 
     
         self.df = pd.read_csv(self.csv_path, header=None)
         
-        self.transform_img = transform_img
-        self.transform_depth = transform_depth
+        self.geom_transform = geom_transform
+        self.img_transform = img_transform
+        self.depth_transform = depth_transform
 
     def __len__(self):
         return len(self.df)
@@ -39,9 +40,13 @@ class NYUDepthDataset(Dataset):
         image = Image.open(img_path).convert("RGB")
         depth = Image.open(depth_path)
 
-        if self.transform_img:
-            image = self.transform_img(image)
-        if self.transform_depth:
-            depth = self.transform_depth(depth)
+        if self.geom_transform is not None:
+            image, depth = self.geom_transform(image, depth)
+
+        if self.img_transform is not None:
+            image = self.img_transform(image)
+
+        if self.depth_transform is not None:
+            depth = self.depth_transform(depth)
 
         return image, depth

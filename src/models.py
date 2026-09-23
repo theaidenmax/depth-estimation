@@ -48,7 +48,7 @@ class ResNetUNetDepth(nn.Module):
     def forward(self, x):
         # encoder
         x0 = self.layer0(x)
-        x1 = self.layer1(self.maxpool(x))
+        x1 = self.layer1(self.maxpool(x0))
         x2 = self.layer2(x1)
         x3 = self.layer3(x2)
         x4 = self.layer4(x3)

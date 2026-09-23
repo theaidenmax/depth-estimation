@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-import torchvision.transforms as T
+import torchvision.transforms.v2 as v2
 from torch.utils.data import DataLoader, random_split
 from pathlib import Path
 
@@ -12,23 +12,47 @@ print(f"Using device: {device}")
 
 csv_path = Path("../data/nyu2_train_subset.csv")
 
-transform_img = T.Compose([
-    T.Resize((256, 256)),
-    T.ToTensor(),
-    T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
+train_geom_transform = v2.Compose([
+    v2.RandomHorizontalFlip(p=0.5),
+    v2.RandomResizedCrop(size=(256, 256), scale=(0.8, 1.0)),
+])
 
-transform_depth = T.Compose([
-    T.Resize((256, 256)),
-    T.ToTensor(),
-    ])
+val_geom_transform = v2.Compose([
+    v2.Resize((256, 256)),
+])
 
-dataset = NYUDepthDataset(csv_path, transform_img=transform_img, transform_depth=transform_depth)
+train_img_transform = v2.Compose([
+    v2.ColorJitter(brightness=0.2, contrast=0.2),
+    v2.ToImage(),
+    v2.ToDtype(torch.float32, scale=True),
+    v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+])
+
+val_img_transform = v2.Compose([
+    v2.ToImage(),
+    v2.ToDtype(torch.float32, scale=True),
+    v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+])
+
+depth_transform = v2.Compose([
+    v2.ToImage(),
+    v2.ToDtype(torch.float32, scale=True)
+])
+
+dataset = NYUDepthDataset(csv_path, )
 
 train_size = int(0.8 * len(dataset))
 val_size = len(dataset) - train_size
 
 train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+
+train_dataset.dataset.geom_transform = train_geom_transform
+train_dataset.dataset.img_transform = train_img_transform
+train_dataset.dataset.depth_transform = depth_transform
+
+val_dataset.dataset.geom_transform = val_geom_transform
+val_dataset.dataset.img_transform = val_img_transform
+val_dataset.dataset.depth_transform = depth_transform
 
 train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, drop_last=True)
 val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
